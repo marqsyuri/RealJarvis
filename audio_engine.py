@@ -6,7 +6,7 @@ import threading
 class AudioEngine:
     def __init__(self):
         self.recognizer = sr.Recognizer()
-        self.gateway_url = "http://45.188.19.178:18789"
+        self.gateway_url = "http://191.252.109.18:18789"
         self.gateway_token = "fc120b7b67a5d8c148e1429d88699e2e51ca80a67ff82af6d9754d5a8e1d4ffb"
         self.worker_id = "LENOVO_YURI"
         
