@@ -1,9 +1,11 @@
 import sys
 import time
+import logging
 from audio_engine import AudioEngine
 from iot_bridge import IoTBridge
 
 sys.stdout.reconfigure(encoding='utf-8')
+logging.basicConfig(format="\n%(asctime)s [%(levelname)s] %(message)s", level=logging.DEBUG)
 
 def main():
     print("==================================================")
