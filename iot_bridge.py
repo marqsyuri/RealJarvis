@@ -65,9 +65,9 @@ class IoTBridge:
         backoff = 2
         while True:
             try:
-                print(f"🔌 [IoT Bridge] Conectando ao OpenClaw V3: {self.ws_url} (Conexão Limpa)")
+                print(f"🔌 [IoT Bridge] Conectando ao OpenClaw V3: {self.ws_url}")
                 async with websockets.connect(self.ws_url) as ws:
-                    print("🔄 [IoT Bridge] Socket TCP / Handshake concluído. Aguardando Challenge...")
+                    print("🔄 [IoT Bridge] Socket TCP aberto. Aguardando Challenge...")
                     backoff = 2
                     while True:
                         msg = await ws.recv()
@@ -129,17 +129,24 @@ class IoTBridge:
                 "payload": {"worker_id": self.worker_id, "status": "online", "platform": "Windows"}
             }))
 
-        elif type_ == "event" and event == "tick":
-            pass  # keepalive passivo do OpenClaw, não precisa responder
+        elif type_ == "event" and event == "ping":
+            # FIX #3: responder com type "res" usando o id do evento recebido
+            await ws.send(json.dumps({
+                "type": "res",
+                "id": data.get("id", f"pong-{int(time.time())}"),
+                "ok": True,
+                "payload": {"ts": data.get("payload", {}).get("ts", int(time.time() * 1000))}
+            }))
 
         elif type_ == "event" and event == "node.invoke.request":
-            frame_id = data["payload"]["id"]
-            frame_node_id = data["payload"]["nodeId"]
-            cmd = data["payload"]["command"]
-            
-            # paramsJSON vem como string JSON, deserializa
-            params_raw = data["payload"].get("paramsJSON")
-            params = json.loads(params_raw) if params_raw else {}
+            # FIX #1: evento correto é "node.invoke.request", não "node.invoke"
+            # FIX #2: payload usa "id" (não "requestId") e "paramsJSON" (string JSON, não objeto)
+            req_id  = data["payload"]["id"]
+            node_id = data["payload"]["nodeId"]
+            cmd     = data["payload"]["command"]
+
+            params_json = data["payload"].get("paramsJSON")
+            params = json.loads(params_json) if params_json else {}
             
             print(f"\n🔔 [Ação PUSH do Cérebro] Comando: {cmd} | Params: {params}")
             
@@ -152,13 +159,14 @@ class IoTBridge:
                 elif cmd == "turn_on_plug":
                     print(f"👉 Ligando tomada inteligente IP: {params.get('ip')}")
                 
+                # FIX #2b: result usa "id" (não "requestId"), "nodeId" obrigatório, "payload" (não "result")
                 await ws.send(json.dumps({
                     "type": "req",
-                    "id": f"res-{frame_id}",
+                    "id": f"res-{req_id}-{int(time.time())}",
                     "method": "node.invoke.result",
                     "params": {
-                        "id": frame_id,
-                        "nodeId": frame_node_id,
+                        "id": req_id,
+                        "nodeId": node_id,
                         "ok": True,
                         "payload": {"status": "done", "output": f"Comando {cmd} executado localmente."}
                     }
@@ -166,13 +174,13 @@ class IoTBridge:
             except Exception as e:
                 await ws.send(json.dumps({
                     "type": "req",
-                    "id": f"res-{frame_id}",
+                    "id": f"res-{req_id}-{int(time.time())}",
                     "method": "node.invoke.result",
                     "params": {
-                        "id": frame_id,
-                        "nodeId": frame_node_id,
+                        "id": req_id,
+                        "nodeId": node_id,
                         "ok": False,
-                        "error": {"type": "exec_error", "message": str(e)}
+                        "error": {"code": "exec_error", "message": str(e)}
                     }
                 }))
 
