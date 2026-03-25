@@ -68,7 +68,7 @@ class IoTBridge:
                 print(f"🔌 [IoT Bridge] Conectando ao OpenClaw V3: {self.ws_url} (Enviando Headers de Auth)")
                 async with websockets.connect(
                     self.ws_url,
-                    extra_headers={"Authorization": f"Bearer {self.gateway_token}"}
+                    additional_headers={"Authorization": f"Bearer {self.gateway_token}"}
                 ) as ws:
                     print("🔄 [IoT Bridge] Socket TCP / Handshake concluído. Aguardando Challenge...")
                     backoff = 2
