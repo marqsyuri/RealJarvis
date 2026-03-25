@@ -129,18 +129,17 @@ class IoTBridge:
                 "payload": {"worker_id": self.worker_id, "status": "online", "platform": "Windows"}
             }))
 
-        elif type_ == "event" and event == "ping":
-            await ws.send(json.dumps({
-                "type": "req",
-                "id": f"pong-{int(time.time())}",
-                "method": "pong",
-                "params": {"ts": data["payload"]["ts"]}
-            }))
+        elif type_ == "event" and event == "tick":
+            pass  # keepalive passivo do OpenClaw, não precisa responder
 
-        elif type_ == "event" and event == "node.invoke":
-            req_id = data["payload"]["requestId"]
+        elif type_ == "event" and event == "node.invoke.request":
+            frame_id = data["payload"]["id"]
+            frame_node_id = data["payload"]["nodeId"]
             cmd = data["payload"]["command"]
-            params = data["payload"].get("params", {})
+            
+            # paramsJSON vem como string JSON, deserializa
+            params_raw = data["payload"].get("paramsJSON")
+            params = json.loads(params_raw) if params_raw else {}
             
             print(f"\n🔔 [Ação PUSH do Cérebro] Comando: {cmd} | Params: {params}")
             
@@ -155,21 +154,23 @@ class IoTBridge:
                 
                 await ws.send(json.dumps({
                     "type": "req",
-                    "id": f"res-{req_id}",
+                    "id": f"res-{frame_id}",
                     "method": "node.invoke.result",
                     "params": {
-                        "requestId": req_id,
+                        "id": frame_id,
+                        "nodeId": frame_node_id,
                         "ok": True,
-                        "result": {"status": "done", "output": f"Comando {cmd} executado localmente."}
+                        "payload": {"status": "done", "output": f"Comando {cmd} executado localmente."}
                     }
                 }))
             except Exception as e:
                 await ws.send(json.dumps({
                     "type": "req",
-                    "id": f"res-{req_id}",
+                    "id": f"res-{frame_id}",
                     "method": "node.invoke.result",
                     "params": {
-                        "requestId": req_id,
+                        "id": frame_id,
+                        "nodeId": frame_node_id,
                         "ok": False,
                         "error": {"type": "exec_error", "message": str(e)}
                     }
