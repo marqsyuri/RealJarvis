@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives import serialization
 
 class IoTBridge:
     def __init__(self):
-        self.ws_url = "ws://45.188.19.178:18789"
+        self.ws_url = "ws://191.252.109.18:18789"
         self.gateway_token = "fc120b7b67a5d8c148e1429d88699e2e51ca80a67ff82af6d9754d5a8e1d4ffb"
         self.client_id = "worker-python"
         self.worker_id = "LENOVO_YURI"
