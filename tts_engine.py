@@ -11,13 +11,18 @@ Latência: ~300-500ms (busca + init mixer) — sem chiado, sem static.
 """
 import io
 import math
+import os
 import struct
+import tempfile
 import time
 import threading
 import queue as q_module
 
 import httpx
 import pygame
+
+# Suprimir o banner "Hello from the pygame community" no console
+os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 
 import config
 
@@ -141,9 +146,19 @@ class TTSEngine:
         resp = httpx.post(url, headers=headers, json=body, timeout=30.0)
         resp.raise_for_status()
 
-        # Tocar MP3 direto do buffer em memória (sem arquivo temporário)
-        audio_buf = io.BytesIO(resp.content)
-        pygame.mixer.music.load(audio_buf)
-        pygame.mixer.music.play()
-        while pygame.mixer.music.get_busy():
-            time.sleep(0.05)
+        # Salvar em arquivo temporário — mais confiável no Windows que BytesIO
+        # (evita o buffer ser liberado antes do pygame terminar de ler)
+        tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+        try:
+            tmp.write(resp.content)
+            tmp.close()
+            pygame.mixer.music.stop()          # garantir que não há nada tocando
+            pygame.mixer.music.load(tmp.name)
+            pygame.mixer.music.play()
+            while pygame.mixer.music.get_busy():
+                time.sleep(0.05)
+        finally:
+            try:
+                os.unlink(tmp.name)            # limpar temp após reprodução
+            except OSError:
+                pass
