@@ -67,8 +67,8 @@ class TTSEngine:
 
     def _say(self, text: str):
         """Busca MP3 da ElevenLabs e toca com pygame.mixer."""
-        short = text[:80] + "…" if len(text) > 80 else text
-        print(f"🔊 [TTS] {short}")
+        # Não printar o texto — Windows Narrator leria em voz alta
+        print(f"🔊 [TTS] ({len(text)} chars)")
 
         if not config.ELEVENLABS_API_KEY:
             print("⚠️  [TTS] ELEVENLABS_API_KEY não configurada — sem áudio")

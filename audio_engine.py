@@ -46,13 +46,20 @@ class AudioEngine:
 
             while self.is_listening:
                 try:
+                    # ── Aguardar TTS terminar ANTES de capturar ──────────
+                    # Evita que o mic capture o áudio do speaker (feedback loop)
+                    if self.tts.is_speaking:
+                        import time as _t
+                        _t.sleep(0.1)
+                        continue
+
                     audio = self.recognizer.listen(
                         source,
                         timeout=config.LISTEN_TIMEOUT,
                         phrase_time_limit=config.PHRASE_LIMIT,
                     )
 
-                    # ── Mute durante TTS (evita capturar a própria voz) ──
+                    # Dupla verificação: descartar se TTS começou durante captura
                     if self.tts.is_speaking:
                         continue
 
@@ -84,7 +91,7 @@ class AudioEngine:
                     if not comando:
                         continue
 
-                    print(f"\n🗣️  [Wake] '{comando}'")
+                    print(f"\n🗣️  [Wake] detectado ({len(comando)} chars)")
 
                     # Submit em background (não bloqueia)
                     asyncio.run_coroutine_threadsafe(

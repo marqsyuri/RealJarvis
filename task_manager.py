@@ -54,7 +54,7 @@ class TaskManager:
                 result = await loop.run_in_executor(
                     self.haiku_executor, ask_haiku, text
                 )
-                print(f"✅ [Haiku:{task_id}] '{result.immediate_response[:60]}'")
+                print(f"✅ [Haiku:{task_id}] ok ({len(result.immediate_response)} chars)")
             except Exception as e:
                 print(f"❌ [Haiku:{task_id}] {type(e).__name__}: {e}")
                 self.tts.speak("Desculpe, tive um problema ao processar.")
@@ -76,7 +76,7 @@ class TaskManager:
                 answer = await loop.run_in_executor(
                     self.dexter_executor, ask_dexter, task
                 )
-                print(f"✅ [Dexter:{task_id}] Resposta pronta ({len(answer)} chars)")
+                print(f"✅ [Dexter:{task_id}] ok ({len(answer)} chars)")
                 self.tts.speak(answer)
             except Exception as e:
                 print(f"❌ [Dexter:{task_id}] {type(e).__name__}: {e}")
