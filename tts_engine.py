@@ -100,7 +100,17 @@ class TTSEngine:
                 channels=1,
                 dtype="int16",
             ) as out:
+                remainder = b""
                 for chunk in resp.iter_bytes(4096):
+                    if not chunk:
+                        continue
+                    # Acumula remainder do chunk anterior para garantir
+                    # que o buffer seja sempre múltiplo de 2 bytes (int16)
+                    chunk = remainder + chunk
+                    remainder = b""
+                    if len(chunk) % 2 != 0:
+                        remainder = chunk[-1:]
+                        chunk = chunk[:-1]
                     if chunk:
                         pcm = np.frombuffer(chunk, dtype=np.int16)
                         out.write(pcm)
