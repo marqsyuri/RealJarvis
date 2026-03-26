@@ -14,10 +14,12 @@ except ImportError:
 #  ElevenLabs TTS
 # ═══════════════════════════════════════════════════════════
 ELEVENLABS_API_KEY  = os.getenv("ELEVENLABS_API_KEY", "")
-# Troque ELEVENLABS_VOICE_ID pelo voice_id da voz JARVIS encontrada na
-# voice library: https://elevenlabs.io/app/voice-library
-# Voz padrão: "Adam" (grave, autoritativo americano)
-ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")
+# Vozes disponíveis no plano free (testadas e funcionando):
+#   Callum  → N2lVS1w4EtoT3dr4eOWO  (Husky, frio, calculado)
+#   Charlie → IKne3meq5aSn9XLyUdCD  (Deep, Confident, Energetic) ← padrão
+#   George  → JBFqnCBsd6RMkjVDRZzb  (Warm, Captivating)
+# Nota: vozes da Voice Library (comunidade) exigem plano pago
+ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "IKne3meq5aSn9XLyUdCD")
 ELEVENLABS_MODEL    = "eleven_turbo_v2_5"   # ~100ms latência | alternativa: eleven_flash_v2_5
 ELEVENLABS_SAMPLE_RATE    = 24000
 ELEVENLABS_OUTPUT_FORMAT  = "pcm_24000"     # raw PCM, sem decode de MP3

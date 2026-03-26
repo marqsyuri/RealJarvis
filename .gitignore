@@ -1,0 +1,15 @@
+# Nunca commitar — contém API keys
+.env
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Áudio de teste
+*.mp3
+*.wav
