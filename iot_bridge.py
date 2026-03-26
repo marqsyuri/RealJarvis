@@ -14,7 +14,7 @@ class IoTBridge:
     def __init__(self):
         self.ws_url = "ws://191.252.109.18:18789"
         self.gateway_token = "fc120b7b67a5d8c148e1429d88699e2e51ca80a67ff82af6d9754d5a8e1d4ffb"
-        self.client_id = "worker-python"
+        self.client_id = "node-host"
         self.worker_id = "LENOVO_YURI"
         
         self.key_file = os.path.expanduser("~/.worker_ed25519.pem")
