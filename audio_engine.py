@@ -59,6 +59,7 @@ class AudioEngine:
             payload = {
                 "model": "openclaw",
                 "user": self.worker_id,
+                "stream": False,
                 "messages": [{"role": "user", "content": spoken_text}]
             }
             
@@ -66,7 +67,7 @@ class AudioEngine:
                 f"{self.gateway_url}/v1/chat/completions",
                 json=payload, 
                 headers=headers, 
-                timeout=60
+                timeout=90
             )
             resp.raise_for_status()
             data = resp.json()

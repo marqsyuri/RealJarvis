@@ -123,11 +123,8 @@ class IoTBridge:
             print("✅ [IoT Bridge] Autenticado no Cérebro (Hello-OK recebido)!")
             self.device_token = data["payload"]["auth"].get("deviceToken", self.device_token)
             
-            await ws.send(json.dumps({
-                "type": "event",
-                "event": "node.ready",
-                "payload": {"worker_id": self.worker_id, "status": "online", "platform": "Windows"}
-            }))
+            # node.ready não é evento suportado pelo gateway — apenas log local
+            print(f"🟢 [IoT Bridge] Node pronto como '{self.worker_id}'")
 
         elif type_ == "event" and event == "ping":
             # FIX #3: responder com type "res" usando o id do evento recebido
