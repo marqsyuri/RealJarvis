@@ -8,6 +8,18 @@ Stack:
   AudioEngine  → Microfone + wake word + mute durante TTS
 """
 import asyncio
+import sys
+import os
+
+# ── Redirecionar output para arquivo de log (evita Windows Narrator ler o console)
+# Para ver logs em tempo real: type jarvis.log  ou  tail -f jarvis.log (Git Bash)
+_log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jarvis.log")
+# Avisar no terminal original antes de silenciar o stdout
+sys.__stdout__.write(f"[Jarvis] Iniciando... logs em: {_log_path}\n")
+sys.__stdout__.flush()
+_log_file = open(_log_path, "w", buffering=1, encoding="utf-8")
+sys.stdout = _log_file
+sys.stderr = _log_file
 
 import config
 from iot_bridge import IoTBridge
