@@ -93,6 +93,9 @@ class AudioEngine:
 
                     print(f"\n🗣️  [Wake] detectado ({len(comando)} chars)")
 
+                    # Pling de confirmação (walkie-talkie)
+                    self.tts.pling()
+
                     # Submit em background (não bloqueia)
                     asyncio.run_coroutine_threadsafe(
                         self.task_manager.submit(comando),

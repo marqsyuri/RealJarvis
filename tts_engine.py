@@ -10,6 +10,8 @@ Abordagem:
 Latência: ~300-500ms (busca + init mixer) — sem chiado, sem static.
 """
 import io
+import math
+import struct
 import time
 import threading
 import queue as q_module
@@ -20,15 +22,56 @@ import pygame
 import config
 
 
+def _generate_pling_wav(
+    freq: float = 960,
+    duration: float = 0.12,
+    sample_rate: int = 44100,
+    volume: float = 0.35,
+) -> io.BytesIO:
+    """Gera um 'pling' (sine com decay exponencial) como WAV em memória.
+    Pure Python — sem numpy, sem deps extras.
+    """
+    n = int(duration * sample_rate)
+    samples = []
+    for i in range(n):
+        t = i / sample_rate
+        envelope = math.exp(-t * 18)          # decay rápido
+        val = math.sin(2 * math.pi * freq * t) * envelope * volume
+        samples.append(max(-32768, min(32767, int(val * 32767))))
+
+    data_size = n * 2  # 16-bit mono
+    buf = io.BytesIO()
+    buf.write(b"RIFF")
+    buf.write(struct.pack("<I", 36 + data_size))
+    buf.write(b"WAVE")
+    buf.write(b"fmt ")
+    buf.write(struct.pack("<I", 16))           # chunk size
+    buf.write(struct.pack("<HH", 1, 1))        # PCM, mono
+    buf.write(struct.pack("<II", sample_rate, sample_rate * 2))
+    buf.write(struct.pack("<HH", 2, 16))       # block align, bits
+    buf.write(b"data")
+    buf.write(struct.pack("<I", data_size))
+    for s in samples:
+        buf.write(struct.pack("<h", s))
+    buf.seek(0)
+    return buf
+
+
 class TTSEngine:
     def __init__(self):
         pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=2048)
         self._queue: q_module.Queue = q_module.Queue()
         self._speaking = threading.Event()
+        # Pré-carregar pling na inicialização
+        self._pling_sound = pygame.mixer.Sound(_generate_pling_wav())
         self._worker = threading.Thread(target=self._run, daemon=True, name="tts-worker")
         self._worker.start()
 
     # ── API pública ──────────────────────────────────────────────────
+
+    def pling(self):
+        """Toca o som de confirmação (walkie-talkie). Não bloqueante."""
+        self._pling_sound.play()
 
     @property
     def is_speaking(self) -> bool:
