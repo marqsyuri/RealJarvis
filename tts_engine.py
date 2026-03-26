@@ -134,11 +134,12 @@ class TTSEngine:
         body = {
             "text": text,
             "model_id": config.ELEVENLABS_MODEL,
+            "language_code": "pt",              # FORÇAR português — sem isso o modelo auto-detecta e mistura
             "output_format": "mp3_44100_128",   # MP3 nativo — pygame lida perfeitamente
             "voice_settings": {
-                "stability": 0.45,
-                "similarity_boost": 0.80,
-                "style": 0.05,
+                "stability": 0.50,
+                "similarity_boost": 0.85,
+                "style": 0.00,                  # style=0 = mais natural e menos "embolado"
                 "use_speaker_boost": True,
             },
         }
