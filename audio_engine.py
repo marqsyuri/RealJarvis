@@ -86,9 +86,6 @@ class AudioEngine:
 
                     print(f"\n🗣️  [Wake] '{comando}'")
 
-                    # Ack imediato (não-bloqueante → mic continua escutando)
-                    self.tts.speak("Entendido, processando...")
-
                     # Submit em background (não bloqueia)
                     asyncio.run_coroutine_threadsafe(
                         self.task_manager.submit(comando),

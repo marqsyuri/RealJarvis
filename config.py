@@ -14,14 +14,16 @@ except ImportError:
 #  ElevenLabs TTS
 # ═══════════════════════════════════════════════════════════
 ELEVENLABS_API_KEY  = os.getenv("ELEVENLABS_API_KEY", "")
-# Vozes disponíveis no plano free (testadas e funcionando):
-#   Callum  → N2lVS1w4EtoT3dr4eOWO  (Husky, frio, calculado)
-#   Charlie → IKne3meq5aSn9XLyUdCD  (Deep, Confident, Energetic) ← padrão
-#   George  → JBFqnCBsd6RMkjVDRZzb  (Warm, Captivating)
+# Vozes disponíveis no plano free (testadas em PT-BR):
+#   Brian            → nPczCjzI2devNBz1zQrb  (Deep, Resonant) ← padrão JARVIS PT
+#   Menina Naturalista→ VzMPkbfceYEaZTe52axN  (única voz PT nativa — feminina)
+#   Callum           → N2lVS1w4EtoT3dr4eOWO  (Husky, mais frio)
+#   George           → JBFqnCBsd6RMkjVDRZzb  (Warm, Storyteller)
 # Nota: vozes da Voice Library (comunidade) exigem plano pago
-ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "IKne3meq5aSn9XLyUdCD")
-ELEVENLABS_MODEL    = "eleven_turbo_v2_5"   # ~100ms latência | alternativa: eleven_flash_v2_5
-# PCM removido — agora usa MP3 direto via pygame (sem problema de sample rate no Windows)
+ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "nPczCjzI2devNBz1zQrb")
+ELEVENLABS_MODEL    = "eleven_multilingual_v2"  # multilingual → fala PT-BR sem sotaque
+# Alternativa mais rápida (200ms menos): "eleven_turbo_v2_5" (ligeiramente pior em PT)
+# PCM removido — usa MP3 direto via pygame (sem problema de sample rate no Windows)
 
 # ═══════════════════════════════════════════════════════════
 #  OpenClaw Gateway

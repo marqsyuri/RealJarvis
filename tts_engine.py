@@ -22,7 +22,7 @@ import config
 
 class TTSEngine:
     def __init__(self):
-        pygame.mixer.init()
+        pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=2048)
         self._queue: q_module.Queue = q_module.Queue()
         self._speaking = threading.Event()
         self._worker = threading.Thread(target=self._run, daemon=True, name="tts-worker")
