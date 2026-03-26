@@ -99,7 +99,7 @@ class TTSEngine:
             channels=1,
             rate=config.ELEVENLABS_SAMPLE_RATE,
             output=True,
-            frames_per_buffer=4096,
+            frames_per_buffer=8192,  # buffer maior => menos underruns no Windows
         )
         try:
             with httpx.stream("POST", url, headers=headers, json=body, timeout=30.0) as resp:
