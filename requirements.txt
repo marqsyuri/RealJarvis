@@ -14,8 +14,11 @@ httpx>=0.27.0          # streaming HTTP
 PyAudio>=0.2.14        # microfone (SpeechRecognition backend)
 pygame>=2.5.0          # playback MP3 nativo Windows (sem problema de sample rate)
 
-# HTTP para brain_client
+# HTTP para brain_client + Dexter
 requests>=2.31.0
+
+# Anthropic SDK — Haiku (camada de voz rápida)
+anthropic>=0.40.0
 
 # Opcional: variáveis de ambiente em arquivo .env
 # python-dotenv>=1.0.0

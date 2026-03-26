@@ -26,6 +26,11 @@ ELEVENLABS_MODEL    = "eleven_multilingual_v2"  # multilingual → fala PT-BR se
 # PCM removido — usa MP3 direto via pygame (sem problema de sample rate no Windows)
 
 # ═══════════════════════════════════════════════════════════
+#  Anthropic — Haiku (camada de voz rápida)
+# ═══════════════════════════════════════════════════════════
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+
+# ═══════════════════════════════════════════════════════════
 #  OpenClaw Gateway
 # ═══════════════════════════════════════════════════════════
 GATEWAY_HTTP  = "http://191.252.109.18:18789"
