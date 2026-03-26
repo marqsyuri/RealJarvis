@@ -40,9 +40,9 @@ class AudioEngine:
 
     def _mic_loop(self):
         with sr.Microphone() as source:
-            print("🎙️  [Jarvis] Calibrando ruído ambiente...")
+            print("[Jarvis] Calibrando ruído ambiente...")
             self.recognizer.adjust_for_ambient_noise(source, duration=1.5)
-            print(f"🎙️  [Jarvis] Aguardando wake word: '{config.WAKE_WORD}'...")
+            print(f"[Jarvis] Aguardando wake word: '{config.WAKE_WORD}'...")
 
             while self.is_listening:
                 try:
@@ -91,7 +91,7 @@ class AudioEngine:
                     if not comando:
                         continue
 
-                    print(f"\n🗣️  [Wake] detectado ({len(comando)} chars)")
+                    print(f"\n[Wake] detectado ({len(comando)} chars)")
 
                     # Pling de confirmação (walkie-talkie)
                     self.tts.pling()
@@ -107,4 +107,4 @@ class AudioEngine:
                 except sr.UnknownValueError:
                     continue
                 except Exception as e:
-                    print(f"❌ [STT] {type(e).__name__}: {e}")
+                    print(f"[STT] {type(e).__name__}: {e}")

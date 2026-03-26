@@ -39,8 +39,8 @@ class TaskManager:
     async def submit(self, text: str) -> str:
         """Envia comando. Retorna task_id imediatamente."""
         task_id = uuid.uuid4().hex[:6]
-        label = text[:50] + "…" if len(text) > 50 else text
-        print(f"📋 [Task:{task_id}] '{label}'")
+        label = text[:50] + "..." if len(text) > 50 else text
+        print(f"[Task:{task_id}] '{label}'")
         asyncio.create_task(self._run(task_id, text))
         return task_id
 
@@ -50,13 +50,13 @@ class TaskManager:
         # ── Etapa 1: Haiku (rápido) ───────────────────────────────
         async with self.haiku_semaphore:
             try:
-                print(f"⚡ [Haiku:{task_id}] Processando...")
+                print(f"[Haiku:{task_id}] Processando...")
                 result = await loop.run_in_executor(
                     self.haiku_executor, ask_haiku, text
                 )
-                print(f"✅ [Haiku:{task_id}] ok ({len(result.immediate_response)} chars)")
+                print(f"[Haiku:{task_id}] ok ({len(result.immediate_response)} chars)")
             except Exception as e:
-                print(f"❌ [Haiku:{task_id}] {type(e).__name__}: {e}")
+                print(f"[Haiku:{task_id}] {type(e).__name__}: {e}")
                 self.tts.speak("Desculpe, tive um problema ao processar.")
                 return
 
@@ -71,13 +71,13 @@ class TaskManager:
         loop = asyncio.get_running_loop()
         async with self.dexter_semaphore:
             try:
-                label = task[:60] + "…" if len(task) > 60 else task
-                print(f"🧠 [Dexter:{task_id}] '{label}'")
+                label = task[:60] + "..." if len(task) > 60 else task
+                print(f"[Dexter:{task_id}] '{label}'")
                 answer = await loop.run_in_executor(
                     self.dexter_executor, ask_dexter, task
                 )
-                print(f"✅ [Dexter:{task_id}] ok ({len(answer)} chars)")
+                print(f"[Dexter:{task_id}] ok ({len(answer)} chars)")
                 self.tts.speak(answer)
             except Exception as e:
-                print(f"❌ [Dexter:{task_id}] {type(e).__name__}: {e}")
+                print(f"[Dexter:{task_id}] {type(e).__name__}: {e}")
                 self.tts.speak("Não consegui completar a tarefa no servidor.")

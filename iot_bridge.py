@@ -9,6 +9,7 @@ import subprocess
 import threading
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives import serialization
+from websockets.exceptions import ConnectionClosed
 
 class IoTBridge:
     def __init__(self):
@@ -65,17 +66,17 @@ class IoTBridge:
         backoff = 2
         while True:
             try:
-                print(f"🔌 [IoT Bridge] Conectando ao OpenClaw V3: {self.ws_url}")
+                print(f"[IoT Bridge] Conectando ao OpenClaw V3: {self.ws_url}")
                 async with websockets.connect(self.ws_url) as ws:
-                    print("🔄 [IoT Bridge] Socket TCP aberto. Aguardando Challenge...")
+                    print("[IoT Bridge] Socket TCP aberto. Aguardando Challenge...")
                     backoff = 2
                     while True:
                         msg = await ws.recv()
                         await self.handle_message(ws, msg)
-            except websockets.exceptions.ConnectionClosed:
-                print(f"⚠️ [IoT Bridge] Conexão Perdida. Reconectando em {backoff}s...")
+            except ConnectionClosed:
+                print(f"[IoT Bridge] Conexão perdida. Reconectando em {backoff}s...")
             except Exception as e:
-                print(f"❌ [IoT Bridge Error] {e}. Reconectando em {backoff}s...")
+                print(f"[IoT Bridge Error] {e}. Reconectando em {backoff}s...")
                 
             await asyncio.sleep(backoff)
             backoff = min(60, backoff * 2)
@@ -120,11 +121,11 @@ class IoTBridge:
             await ws.send(json.dumps(req))
             
         elif type_ == "res" and data.get("payload", {}).get("type") == "hello-ok":
-            print("✅ [IoT Bridge] Autenticado no Cérebro (Hello-OK recebido)!")
+            print("[IoT Bridge] Autenticado no Cérebro (Hello-OK recebido)!")
             self.device_token = data["payload"]["auth"].get("deviceToken", self.device_token)
             
             # node.ready não é evento suportado pelo gateway — apenas log local
-            print(f"🟢 [IoT Bridge] Node pronto como '{self.worker_id}'")
+            print(f"[IoT Bridge] Node pronto como '{self.worker_id}'")
 
         elif type_ == "event" and event == "ping":
             # FIX #3: responder com type "res" usando o id do evento recebido
@@ -145,7 +146,7 @@ class IoTBridge:
             params_json = data["payload"].get("paramsJSON")
             params = json.loads(params_json) if params_json else {}
             
-            print(f"\n🔔 [Ação PUSH do Cérebro] Comando: {cmd} | Params: {params}")
+            print(f"\n[Ação PUSH do Cérebro] Comando: {cmd} | Params: {params}")
             
             try:
                 if cmd == "open_app" and "name" in params:
@@ -154,7 +155,7 @@ class IoTBridge:
                 elif cmd == "lock_screen":
                     subprocess.run("rundll32.exe user32.dll,LockWorkStation")
                 elif cmd == "turn_on_plug":
-                    print(f"👉 Ligando tomada inteligente IP: {params.get('ip')}")
+                    print(f"[IoT Bridge] Ligando tomada inteligente IP: {params.get('ip')}")
                 
                 # FIX #2b: result usa "id" (não "requestId"), "nodeId" obrigatório, "payload" (não "result")
                 await ws.send(json.dumps({

@@ -101,7 +101,8 @@ class TTSEngine:
             try:
                 self._say(text)
             except Exception as e:
-                print(f"❌ [TTS] {type(e).__name__}: {e}")
+                # Evita emojis/ícones no Windows (console cp1252) para não quebrar encoding
+                print(f"[TTS] ERROR {type(e).__name__}: {e}")
             finally:
                 self._speaking.clear()
                 if done_event:
@@ -111,10 +112,10 @@ class TTSEngine:
     def _say(self, text: str):
         """Busca MP3 da ElevenLabs e toca com pygame.mixer."""
         # Não printar o texto — Windows Narrator leria em voz alta
-        print(f"🔊 [TTS] ({len(text)} chars)")
+        print(f"[TTS] ({len(text)} chars)")
 
         if not config.ELEVENLABS_API_KEY:
-            print("⚠️  [TTS] ELEVENLABS_API_KEY não configurada — sem áudio")
+            print("[TTS] ELEVENLABS_API_KEY não configurada - sem áudio")
             return
 
         url = (

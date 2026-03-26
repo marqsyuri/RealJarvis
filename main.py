@@ -30,7 +30,7 @@ from audio_engine import AudioEngine
 
 async def main():
     print("=" * 55)
-    print("  J.A.R.V.I.S  —  Jarvis Worker v2")
+    print("  J.A.R.V.I.S  -  Jarvis Worker v2")
     print("=" * 55)
     print(f"  Gateway : {config.GATEWAY_WS}")
     print(f"  Worker  : {config.WORKER_ID}")
@@ -39,7 +39,7 @@ async def main():
     print(f"  TTS     : ElevenLabs {config.ELEVENLABS_MODEL}")
     print(f"  Voice   : {config.ELEVENLABS_VOICE_ID}")
     if not config.ELEVENLABS_API_KEY:
-        print("  ⚠️  ELEVENLABS_API_KEY não definida — TTS desativado")
+        print("  [Main] ELEVENLABS_API_KEY não definida - TTS desativado")
     print("=" * 55)
 
     # ── Montar stack ────────────────────────────────────────────────
