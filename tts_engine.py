@@ -1,28 +1,30 @@
 """
-tts_engine.py — ElevenLabs TTS com streaming PCM e fila serializada
+tts_engine.py — ElevenLabs TTS com pygame (MP3, Windows-friendly)
 
-Fluxo:
-  speak(text)     → enfileira (não-bloqueante)
-  speak_wait(text)→ enfileira e bloqueia até a fala terminar
-  is_speaking     → True enquanto áudio está tocando (usado para mute do mic)
+Abordagem:
+  - Busca MP3 da ElevenLabs via httpx (sem PCM manual = sem problema de sample rate)
+  - Toca com pygame.mixer que suporta MP3 nativo no Windows
+  - Fila serializada (uma fala de cada vez)
+  - is_speaking flag para mute automático do microfone
 
-Implementação usa httpx streaming + pyaudio para tocar PCM em tempo real.
-A fala começa no primeiro chunk (~100ms) sem esperar o áudio completo.
+Latência: ~300-500ms (busca + init mixer) — sem chiado, sem static.
 """
+import io
+import time
 import threading
 import queue as q_module
 
 import httpx
-import pyaudio
+import pygame
 
 import config
 
 
 class TTSEngine:
     def __init__(self):
+        pygame.mixer.init()
         self._queue: q_module.Queue = q_module.Queue()
         self._speaking = threading.Event()
-        self._pa = pyaudio.PyAudio()
         self._worker = threading.Thread(target=self._run, daemon=True, name="tts-worker")
         self._worker.start()
 
@@ -40,8 +42,7 @@ class TTSEngine:
 
     def speak_wait(self, text: str):
         """Enfileira fala e BLOQUEIA até terminar.
-        Usar para respostas onde precisamos esperar antes de continuar
-        (ex: 'Sim, senhor?' antes de capturar o próximo comando)."""
+        Usar para 'Sim, senhor?' antes de capturar o próximo comando."""
         if not text or not text.strip():
             return
         done = threading.Event()
@@ -55,7 +56,7 @@ class TTSEngine:
             text, done_event = self._queue.get()
             self._speaking.set()
             try:
-                self._stream_pcm(text)
+                self._say(text)
             except Exception as e:
                 print(f"❌ [TTS] {type(e).__name__}: {e}")
             finally:
@@ -64,8 +65,8 @@ class TTSEngine:
                     done_event.set()
                 self._queue.task_done()
 
-    def _stream_pcm(self, text: str):
-        """Streaming PCM da ElevenLabs → pyaudio. Latência ~100ms."""
+    def _say(self, text: str):
+        """Busca MP3 da ElevenLabs e toca com pygame.mixer."""
         short = text[:80] + "…" if len(text) > 80 else text
         print(f"🔊 [TTS] {short}")
 
@@ -75,7 +76,7 @@ class TTSEngine:
 
         url = (
             f"https://api.elevenlabs.io/v1/text-to-speech"
-            f"/{config.ELEVENLABS_VOICE_ID}/stream"
+            f"/{config.ELEVENLABS_VOICE_ID}"
         )
         headers = {
             "xi-api-key": config.ELEVENLABS_API_KEY,
@@ -84,7 +85,7 @@ class TTSEngine:
         body = {
             "text": text,
             "model_id": config.ELEVENLABS_MODEL,
-            "output_format": config.ELEVENLABS_OUTPUT_FORMAT,
+            "output_format": "mp3_44100_128",   # MP3 nativo — pygame lida perfeitamente
             "voice_settings": {
                 "stability": 0.45,
                 "similarity_boost": 0.80,
@@ -93,29 +94,12 @@ class TTSEngine:
             },
         }
 
-        # pyaudio: mais confiável no Windows para PCM direto
-        pa_stream = self._pa.open(
-            format=pyaudio.paInt16,
-            channels=1,
-            rate=config.ELEVENLABS_SAMPLE_RATE,
-            output=True,
-            frames_per_buffer=8192,  # buffer maior => menos underruns no Windows
-        )
-        try:
-            with httpx.stream("POST", url, headers=headers, json=body, timeout=30.0) as resp:
-                resp.raise_for_status()
-                remainder = b""
-                for chunk in resp.iter_bytes(4096):
-                    if not chunk:
-                        continue
-                    # Garantir múltiplo de 2 bytes (int16)
-                    chunk = remainder + chunk
-                    remainder = b""
-                    if len(chunk) % 2 != 0:
-                        remainder = chunk[-1:]
-                        chunk = chunk[:-1]
-                    if chunk:
-                        pa_stream.write(chunk)
-        finally:
-            pa_stream.stop_stream()
-            pa_stream.close()
+        resp = httpx.post(url, headers=headers, json=body, timeout=30.0)
+        resp.raise_for_status()
+
+        # Tocar MP3 direto do buffer em memória (sem arquivo temporário)
+        audio_buf = io.BytesIO(resp.content)
+        pygame.mixer.music.load(audio_buf)
+        pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            time.sleep(0.05)
