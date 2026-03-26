@@ -1,29 +1,59 @@
-import sys
-import time
-import logging
-from audio_engine import AudioEngine
+"""
+main.py — Jarvis Worker v2
+
+Stack:
+  IoTBridge    → WebSocket OpenClaw (node-host, comandos IoT push)
+  TTSEngine    → ElevenLabs streaming PCM via sounddevice
+  TaskManager  → Pool async (MAX_BRAIN_WORKERS paralelos)
+  AudioEngine  → Microfone + wake word + mute durante TTS
+"""
+import asyncio
+
+import config
 from iot_bridge import IoTBridge
+from tts_engine import TTSEngine
+from task_manager import TaskManager
+from audio_engine import AudioEngine
 
-sys.stdout.reconfigure(encoding='utf-8')
-logging.basicConfig(format="\n%(asctime)s [%(levelname)s] %(message)s", level=logging.DEBUG)
 
-def main():
-    print("==================================================")
-    print("🔥 JARVIS DISTRIBUTABLE WORKER (Voz + IoT) 🔥")
-    print("==================================================")
-    
-    print("\n[1] Inicializando a Ponte IoT (Protocolo Mãos de Ouro V3)...")
-    bridge = IoTBridge()
+async def main():
+    print("=" * 55)
+    print("  J.A.R.V.I.S  —  Jarvis Worker v2")
+    print("=" * 55)
+    print(f"  Gateway : {config.GATEWAY_WS}")
+    print(f"  Worker  : {config.WORKER_ID}")
+    print(f"  Wake    : '{config.WAKE_WORD}'")
+    print(f"  Tasks   : {config.MAX_BRAIN_WORKERS} paralelas")
+    print(f"  TTS     : ElevenLabs {config.ELEVENLABS_MODEL}")
+    print(f"  Voice   : {config.ELEVENLABS_VOICE_ID}")
+    if not config.ELEVENLABS_API_KEY:
+        print("  ⚠️  ELEVENLABS_API_KEY não definida — TTS desativado")
+    print("=" * 55)
+
+    # ── Montar stack ────────────────────────────────────────────────
+    tts      = TTSEngine()
+    task_mgr = TaskManager(tts, max_workers=config.MAX_BRAIN_WORKERS)
+    bridge   = IoTBridge()
+    audio    = AudioEngine(task_mgr, tts)
+
+    # ── IoT Bridge em background ────────────────────────────────────
     bridge.start()
 
-    print("[2] Inicializando Motor de Escuta (Microfone)...")
-    audio = AudioEngine()
-    
+    # ── Boas-vindas ─────────────────────────────────────────────────
+    tts.speak("Jarvis online. Aguardando seus comandos, senhor.")
+
+    # ── Loop principal ──────────────────────────────────────────────
     try:
-        audio.listen_loop()
-    except KeyboardInterrupt:
-        print("\n[Main] Encerrando Jarvis Worker de forma limpa...")
+        await audio.run()
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        pass
+    finally:
         audio.is_listening = False
+        print("\n[Main] Jarvis Worker encerrado.")
+
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n[Main] Interrompido pelo usuário.")

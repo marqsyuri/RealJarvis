@@ -1,86 +1,103 @@
+"""
+audio_engine.py — Loop de microfone com wake word, mute durante TTS e multi-task
+
+Comportamento:
+  - Escuta continuamente aguardando wake word (config.WAKE_WORD)
+  - Durante TTS (is_speaking=True): descarta áudio capturado (evita feedback)
+  - "Jarvis" sozinho → fala "Sim, senhor?" e escuta próximo comando
+  - "Jarvis <comando>" → fala "Entendido, processando..." e submete ao TaskManager
+  - Mic CONTINUA escutando enquanto o cérebro processa em background
+  - Múltiplos comandos podem ser enfileirados sem bloquear o microfone
+"""
+import asyncio
 import speech_recognition as sr
-import pyttsx3
-import requests
-import threading
+from typing import TYPE_CHECKING
+
+import config
+
+if TYPE_CHECKING:
+    from tts_engine import TTSEngine
+    from task_manager import TaskManager
+
 
 class AudioEngine:
-    def __init__(self):
+    def __init__(self, task_manager: "TaskManager", tts: "TTSEngine"):
+        self.task_manager = task_manager
+        self.tts = tts
         self.recognizer = sr.Recognizer()
-        self.gateway_url = "http://191.252.109.18:18789"
-        self.gateway_token = "fc120b7b67a5d8c148e1429d88699e2e51ca80a67ff82af6d9754d5a8e1d4ffb"
-        self.worker_id = "LENOVO_YURI"
-        
-        self.tts_engine = pyttsx3.init()
-        self.tts_engine.setProperty('rate', 170)
         self.is_listening = True
+        self._loop: asyncio.AbstractEventLoop | None = None
 
-    def speak(self, text):
-        print(f"\n🎧 [Jarvis -> Voz] Falando: {text}")
-        self.tts_engine.say(text)
-        self.tts_engine.runAndWait()
+    # ── Ponto de entrada ─────────────────────────────────────────────
 
-    def listen_loop(self):
+    async def run(self):
+        """Inicia o loop de microfone. Bloqueia até is_listening=False."""
+        self._loop = asyncio.get_running_loop()
+        # Roda o loop bloqueante em thread separada para não travar o event loop
+        await self._loop.run_in_executor(None, self._mic_loop)
+
+    # ── Loop de microfone (thread dedicada) ──────────────────────────
+
+    def _mic_loop(self):
         with sr.Microphone() as source:
-            print("🎙️ [Jarvis] Ajustando redução de ruído ambiental...")
+            print("🎙️  [Jarvis] Calibrando ruído ambiente...")
             self.recognizer.adjust_for_ambient_noise(source, duration=1.5)
-            print("🎙️ [Jarvis] Pronto e escutando (Wake Word: 'Jarvis')...")
+            print(f"🎙️  [Jarvis] Aguardando wake word: '{config.WAKE_WORD}'...")
 
             while self.is_listening:
                 try:
-                    audio = self.recognizer.listen(source, timeout=1, phrase_time_limit=10)
-                    text = self.recognizer.recognize_google(audio, language='pt-BR').lower()
-                    
-                    if "jarvis" in text:
-                        print(f"\n🗣️ [Wake Word] Você falou: {text}")
-                        comando = text.replace("jarvis", "").strip()
-                        
-                        if comando:
-                            self.send_to_brain(comando)
-                        else:
-                            self.speak("Sim, senhor?")
-                            audio2 = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
-                            comando2 = self.recognizer.recognize_google(audio2, language='pt-BR')
-                            self.send_to_brain(comando2)
-                            
+                    audio = self.recognizer.listen(
+                        source,
+                        timeout=config.LISTEN_TIMEOUT,
+                        phrase_time_limit=config.PHRASE_LIMIT,
+                    )
+
+                    # ── Mute durante TTS (evita capturar a própria voz) ──
+                    if self.tts.is_speaking:
+                        continue
+
+                    text = self.recognizer.recognize_google(
+                        audio, language=config.STT_LANGUAGE
+                    ).lower()
+
+                    if config.WAKE_WORD not in text:
+                        continue
+
+                    # ── Wake word detectado ───────────────────────────
+                    comando = text.replace(config.WAKE_WORD, "").strip()
+
+                    if not comando:
+                        # "Jarvis" sozinho → pede o comando
+                        self.tts.speak_wait("Sim, senhor?")
+                        try:
+                            audio2 = self.recognizer.listen(
+                                source,
+                                timeout=5,
+                                phrase_time_limit=config.PHRASE_LIMIT,
+                            )
+                            comando = self.recognizer.recognize_google(
+                                audio2, language=config.STT_LANGUAGE
+                            )
+                        except (sr.WaitTimeoutError, sr.UnknownValueError):
+                            continue
+
+                    if not comando:
+                        continue
+
+                    print(f"\n🗣️  [Wake] '{comando}'")
+
+                    # Ack imediato (não-bloqueante → mic continua escutando)
+                    self.tts.speak("Entendido, processando...")
+
+                    # Submit em background (não bloqueia)
+                    asyncio.run_coroutine_threadsafe(
+                        self.task_manager.submit(comando),
+                        self._loop,
+                    )
+
                 except sr.WaitTimeoutError:
                     continue
                 except sr.UnknownValueError:
                     continue
                 except Exception as e:
-                    pass
-
-    def send_to_brain(self, spoken_text):
-        print(f"☁️ [OpenClaw REST] Enviando comando: '{spoken_text}'")
-        try:
-            headers = {
-                "Authorization": f"Bearer {self.gateway_token}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "model": "openclaw",
-                "user": self.worker_id,
-                "stream": False,
-                "messages": [{"role": "user", "content": spoken_text}]
-            }
-            
-            resp = requests.post(
-                f"{self.gateway_url}/v1/chat/completions",
-                json=payload, 
-                headers=headers, 
-                timeout=90
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            
-            resposta_cerebro = data["choices"][0]["message"]["content"]
-            self.speak(resposta_cerebro)
-            
-        except requests.exceptions.HTTPError as e:
-            self.speak(f"O cérebro rejeitou a conexão com status {e.response.status_code}.")
-        except Exception as e:
-            self.speak("Infelizmente, ocorreu um erro de comunicação com o Cérebro na nuvem.")
-            print(f"❌ [Erro REST] {e}")
-            
-    def start(self):
-        t = threading.Thread(target=self.listen_loop, daemon=True)
-        t.start()
+                    print(f"❌ [STT] {type(e).__name__}: {e}")
