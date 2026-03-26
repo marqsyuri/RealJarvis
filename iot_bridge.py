@@ -23,6 +23,7 @@ class IoTBridge:
         
         self.device_token = None
         self.tick_interval_ms = 15000
+        self.tts = None  # injetado via set_tts() pelo main.py
 
     def load_or_generate_keys(self):
         if os.path.exists(self.key_file):
@@ -104,7 +105,7 @@ class IoTBridge:
                     "role": "node",
                     "scopes": [],
                     "caps": ["local-exec", "iot", "desktop"],
-                    "commands": ["turn_on_plug", "turn_off_plug", "open_app", "close_app", "run_command", "get_status"],
+                    "commands": ["turn_on_plug", "turn_off_plug", "open_app", "close_app", "run_command", "get_status", "speak"],
                     "permissions": {},
                     "auth": {"token": token_to_use},
                     "locale": "pt-BR",
@@ -149,7 +150,14 @@ class IoTBridge:
             print(f"\n[Ação PUSH do Cérebro] Comando: {cmd} | Params: {params}")
             
             try:
-                if cmd == "open_app" and "name" in params:
+                if cmd == "speak":
+                    # Fluxo inverso: Dexter fala no notebook via TTS
+                    text = params.get("text", "")
+                    if text and self.tts:
+                        self.tts.speak(text)
+                    elif text:
+                        print(f"[IoT Bridge] speak sem TTS: {text}")
+                elif cmd == "open_app" and "name" in params:
                     if params["name"].lower() == "notepad":
                         subprocess.Popen(["notepad.exe"])
                 elif cmd == "lock_screen":
@@ -181,6 +189,10 @@ class IoTBridge:
                         "error": {"code": "exec_error", "message": str(e)}
                     }
                 }))
+
+    def set_tts(self, tts_engine):
+        """Injeta referencia ao TTSEngine para comandos speak do Dexter."""
+        self.tts = tts_engine
 
     def start(self):
         def run_it():

@@ -43,8 +43,16 @@ WORKER_ID     = "LENOVO_YURI"
 # ═══════════════════════════════════════════════════════════
 WAKE_WORD      = "jarvis"
 STT_LANGUAGE   = "pt-BR"
-LISTEN_TIMEOUT = 1    # segundos de silêncio → WaitTimeoutError (mantém loop vivo)
-PHRASE_LIMIT   = 12   # duração máxima de uma fala em segundos
+LISTEN_TIMEOUT = 1    # segundos (modo wake word — loop curto pra detectar rápido)
+PHRASE_LIMIT   = 6    # reduzido: comandos de voz são curtos (< 6s normalmente)
+
+# Modo conversa
+CONVERSATION_SILENCE_TIMEOUTS = 3   # 3 × timeout = ~3s silêncio → sai do modo conversa
+CONVERSATION_EXIT_PHRASES = {
+    "pode ir", "dispensado", "obrigado", "obrigada",
+    "tchau", "até logo", "até mais", "encerra", "encerrar",
+    "sair", "pare", "parar",
+}
 
 # ═══════════════════════════════════════════════════════════
 #  Task Manager

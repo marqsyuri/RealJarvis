@@ -48,6 +48,9 @@ async def main():
     bridge   = IoTBridge()
     audio    = AudioEngine(task_mgr, tts)
 
+    # Injetar TTS na bridge para fluxo inverso (Dexter → fala no notebook)
+    bridge.set_tts(tts)
+
     # ── IoT Bridge em background ────────────────────────────────────
     bridge.start()
 

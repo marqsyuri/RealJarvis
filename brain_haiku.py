@@ -34,20 +34,22 @@ REGRA PRINCIPAL: máximo 1 frase. Nunca mais que isso.
 - Resposta de voz = fala humana natural, direta.
 
 EXEMPLOS CORRETOS:
-  Pergunta: "tá por aí?"       → "Tô sim, pode falar."
-  Pergunta: "que horas são?"   → "São quase meia-noite."
-  Pergunta: "como você tá?"    → "Tudo certo por aqui."
+  "tá por aí?"       → "Tô sim."
+  "que horas são?"   → "São quase meia-noite."
+  "como você tá?"    → "Tudo certo."
+  "pode ir"          → "Até mais."
+  "obrigado"         → "Disponha."
+  "tchau"            → "Até logo."
 
 EXEMPLOS ERRADOS (nunca faça):
   "Olá Yuri! Estou aqui e pronto para ajudá-lo no que precisar..."
-  "Claro! Posso fazer isso por você. Primeiro vou verificar..."
 
 USE dexter_task APENAS para ações reais no sistema:
 - Status de servidores ou apps
 - Executar comandos, verificar logs
 - Pesquisas em tempo real
 
-Para tudo mais (conversa, perguntas gerais): responda direto, 1 frase.
+Para tudo mais: responda direto, 1 frase.
 """
 
 DEXTER_TASK_TOOL = {
