@@ -6,15 +6,14 @@ Fluxo:
   speak_wait(text)→ enfileira e bloqueia até a fala terminar
   is_speaking     → True enquanto áudio está tocando (usado para mute do mic)
 
-Implementação usa httpx streaming + sounddevice para tocar PCM em tempo real.
+Implementação usa httpx streaming + pyaudio para tocar PCM em tempo real.
 A fala começa no primeiro chunk (~100ms) sem esperar o áudio completo.
 """
 import threading
 import queue as q_module
 
 import httpx
-import numpy as np
-import sounddevice as sd
+import pyaudio
 
 import config
 
@@ -23,6 +22,7 @@ class TTSEngine:
     def __init__(self):
         self._queue: q_module.Queue = q_module.Queue()
         self._speaking = threading.Event()
+        self._pa = pyaudio.PyAudio()
         self._worker = threading.Thread(target=self._run, daemon=True, name="tts-worker")
         self._worker.start()
 
@@ -65,7 +65,7 @@ class TTSEngine:
                 self._queue.task_done()
 
     def _stream_pcm(self, text: str):
-        """Streaming PCM da ElevenLabs → sounddevice. Latência ~100ms."""
+        """Streaming PCM da ElevenLabs → pyaudio. Latência ~100ms."""
         short = text[:80] + "…" if len(text) > 80 else text
         print(f"🔊 [TTS] {short}")
 
@@ -93,24 +93,29 @@ class TTSEngine:
             },
         }
 
-        with httpx.stream("POST", url, headers=headers, json=body, timeout=30.0) as resp:
-            resp.raise_for_status()
-            with sd.OutputStream(
-                samplerate=config.ELEVENLABS_SAMPLE_RATE,
-                channels=1,
-                dtype="int16",
-            ) as out:
+        # pyaudio: mais confiável no Windows para PCM direto
+        pa_stream = self._pa.open(
+            format=pyaudio.paInt16,
+            channels=1,
+            rate=config.ELEVENLABS_SAMPLE_RATE,
+            output=True,
+            frames_per_buffer=4096,
+        )
+        try:
+            with httpx.stream("POST", url, headers=headers, json=body, timeout=30.0) as resp:
+                resp.raise_for_status()
                 remainder = b""
                 for chunk in resp.iter_bytes(4096):
                     if not chunk:
                         continue
-                    # Acumula remainder do chunk anterior para garantir
-                    # que o buffer seja sempre múltiplo de 2 bytes (int16)
+                    # Garantir múltiplo de 2 bytes (int16)
                     chunk = remainder + chunk
                     remainder = b""
                     if len(chunk) % 2 != 0:
                         remainder = chunk[-1:]
                         chunk = chunk[:-1]
                     if chunk:
-                        pcm = np.frombuffer(chunk, dtype=np.int16)
-                        out.write(pcm)
+                        pa_stream.write(chunk)
+        finally:
+            pa_stream.stop_stream()
+            pa_stream.close()

@@ -11,8 +11,7 @@ PyAudio>=0.2.14        # microfone (backend do SpeechRecognition)
 
 # TTS — ElevenLabs streaming
 httpx>=0.27.0          # streaming HTTP
-sounddevice>=0.4.7     # playback PCM (sem dependência de player externo)
-numpy>=1.26.0          # buffer PCM int16
+PyAudio>=0.2.14        # playback PCM (portaudio, mais confiável no Windows)
 
 # HTTP para brain_client
 requests>=2.31.0

@@ -21,8 +21,8 @@ ELEVENLABS_API_KEY  = os.getenv("ELEVENLABS_API_KEY", "")
 # Nota: vozes da Voice Library (comunidade) exigem plano pago
 ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "IKne3meq5aSn9XLyUdCD")
 ELEVENLABS_MODEL    = "eleven_turbo_v2_5"   # ~100ms latência | alternativa: eleven_flash_v2_5
-ELEVENLABS_SAMPLE_RATE    = 24000
-ELEVENLABS_OUTPUT_FORMAT  = "pcm_24000"     # raw PCM, sem decode de MP3
+ELEVENLABS_SAMPLE_RATE    = 44100           # 44100 = padrão Windows (evita chiado/resampling)
+ELEVENLABS_OUTPUT_FORMAT  = "pcm_44100"     # raw PCM 16-bit mono 44100Hz
 
 # ═══════════════════════════════════════════════════════════
 #  OpenClaw Gateway
